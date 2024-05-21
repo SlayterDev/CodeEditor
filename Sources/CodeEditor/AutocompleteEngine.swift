@@ -6,24 +6,43 @@
 //
 
 import UIKit
+import SwiftUI
 
 protocol AutocompleteEngineDelegate: AnyObject {
     func replaceTarget(range: NSRange, with text: String)
 }
 
+extension UIView {
+    var parentViewController: UIViewController? {
+        sequence(first: self) { $0.next }
+            .first(where: { $0 is UIViewController })
+            .flatMap { $0 as? UIViewController }
+    }
+}
+
 class AutocompleteEngine {
 
     weak var delegate: AutocompleteEngineDelegate?
-    var autocompleteBuffer: String?
+    weak var targetTextView: UXTextView?
+    
+    let autocompleteViewModel: AutocompleteSuggestionViewModel
 
     var boxLocation: CGPoint = .zero
+
+    var autocompleteBox: UIHostingController<AutocompleteSuggestionView>?
+    var targetRange: UITextRange?
+
+    init(autocompleteViewModel: AutocompleteSuggestionViewModel = AutocompleteSuggestionViewModel()) {
+        self.autocompleteViewModel = autocompleteViewModel
+        self.autocompleteViewModel.delegate = self
+    }
 
     private func charAt(_ i: Int, in textView: UXTextView) -> Character {
         return textView.text[textView.text.index(textView.text.startIndex, offsetBy: i)]
     }
 
     func updateAutocompleteBuffer(for textView: UXTextView) {
-        var endLoc = textView.selectedRange.location + textView.selectedRange.length - 1
+        let endLoc = textView.selectedRange.location + textView.selectedRange.length - 1
         var startLoc = endLoc
         var autocompTest = ""
         while charAt(startLoc, in: textView).isLetter || charAt(startLoc, in: textView).isNumber {
@@ -34,16 +53,61 @@ class AutocompleteEngine {
                 break
             }
         }
-        self.autocompleteBuffer = autocompTest
-        updateBoxPosition(textView: textView, endLoc: endLoc)
+
+        if !autocompTest.isEmpty {
+            let beginning = textView.beginningOfDocument
+            guard let start = textView.position(from: beginning, offset: startLoc + 1),
+                  let end = textView.position(from: beginning, offset: endLoc + 1) else { removeSuggestionBox(); return }
+            targetRange = textView.textRange(from: start, to: end)
+
+            autocompleteViewModel.updateSuggestionList(for: autocompTest)
+            updateBoxPosition(textView: textView, endLoc: endLoc)
+        } else {
+            removeSuggestionBox()
+        }
+    }
+
+    func setupView(in textView: UXTextView) {
+        targetTextView = textView
+
+        let view = AutocompleteSuggestionView(viewModel: autocompleteViewModel)
+        let hc = UIHostingController(rootView: view)
+        let parentViewController = textView.parentViewController
+
+        parentViewController?.addChild(hc)
+        textView.addSubview(hc.view)
+        hc.didMove(toParent: parentViewController)
+        hc.view.frame = CGRect(x: 0, y: 0, width: 300, height: 200)
+
+        autocompleteBox = hc
+    }
+
+    func removeSuggestionBox() {
+        guard let autocompleteBox else { return }
+
+        autocompleteBox.view.removeFromSuperview()
+        autocompleteBox.removeFromParent()
+        self.autocompleteBox = nil
     }
 
     func updateBoxPosition(textView: UXTextView, endLoc: Int) {
-        guard let textPos = textView.position(from: textView.beginningOfDocument, offset: endLoc) else { return }
+        guard !autocompleteViewModel.filteredList.isEmpty else { removeSuggestionBox(); return }
+        guard let textPos = textView.position(from: textView.beginningOfDocument, offset: endLoc) else { removeSuggestionBox(); return }
         let rect = textView.caretRect(for: textPos)
-        let customView = UIView(frame: CGRect(x: rect.origin.x, y: rect.origin.y, width: 20, height: 20))
-        customView.backgroundColor = .blue
-        textView.addSubview(customView)
+        
+        if autocompleteBox == nil {
+            setupView(in: textView)
+        }
+
+        autocompleteBox?.view.frame.origin = CGPoint(x: rect.origin.x + 1, y: rect.origin.y + (textView.font?.lineHeight ?? 12 + 1))
     }
 
+}
+
+extension AutocompleteEngine: AutocompleteSuggestionDelegate {
+    func didSelectAutocompleteSuggestion(sugestion: AutocompleteSuggestion) {
+        guard let selectionRange = targetRange else { return }
+        targetTextView?.replace(selectionRange, withText: sugestion.suggestion)
+        removeSuggestionBox()
+    }
 }
