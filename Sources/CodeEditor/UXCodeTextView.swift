@@ -159,9 +159,28 @@ final class UXCodeTextView: UXTextView {
     private var isAutoPairEnabled : Bool { return !autoPairCompletion.isEmpty }
 
 #if os(iOS)
+    func iosSmartIndex() {
+        let currentLine = self.currentLine
+        let wsPrefix = currentLine.prefix(while: {
+            guard let scalar = $0.unicodeScalars.first else { return false }
+            return CharacterSet.whitespaces.contains(scalar) // 👍
+        })
+
+        super.insertText("\n")
+        if !wsPrefix.isEmpty {
+            insertText(String(wsPrefix))
+        }
+    }
+
     override func insertText(_ text: String) {
+        if text == "\n" {
+            guard isSmartIndentEnabled else { return super.insertText(text) }
+            iosSmartIndex()
+            return
+        }
+
         super.insertText(text)
-        guard isAutoPairEnabled              else { return }
+        guard isAutoPairEnabled else { return }
         guard let end = autoPairCompletion[text] else { return }
         let prev = self.selectedRange
         super.insertText(end)
@@ -171,7 +190,7 @@ final class UXCodeTextView: UXTextView {
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         guard let key = presses.first?.key else { super.pressesBegan(presses, with: event); return }
         switch key.keyCode {
-        case .keyboardTab:
+        case .keyboardTab, .keyboardReturnOrEnter:
             if !(keyPressDelegate?.textViewDidPressTab(textView: self) ?? false) {
                 super.pressesBegan(presses, with: event)
             }
