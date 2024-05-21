@@ -11,16 +11,37 @@ struct AutocompleteSuggestionView: View {
 
     @ObservedObject var viewModel: AutocompleteSuggestionViewModel
 
+    func shapeStyle(for suggestion: AutocompleteSuggestion) -> some View {
+        if #available(iOS 15.0, *) {
+            return RoundedRectangle(cornerSize: CGSize(width: 8, height: 8))
+                .padding(.horizontal, -8)
+                .padding(.vertical, 1)
+                .foregroundStyle(Color.accentColor)
+                .opacity(0.36)
+        } else {
+            return RoundedRectangle(cornerSize: CGSize(width: 8, height: 8))
+                .padding(.horizontal, -8)
+                .padding(.vertical, 1)
+                .foregroundColor(Color.accentColor)
+                .opacity(0.36)
+        }
+    }
+
     var body: some View {
         List {
             ForEach(viewModel.filteredList) { suggestion in
-                HStack {
-                    Text(suggestion.suggestion)
-                    Spacer()
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    viewModel.select(suggestion: suggestion)
+                ZStack {
+                    if suggestion == viewModel.filteredList[viewModel.selectionIndex] {
+                        shapeStyle(for: suggestion)
+                    }
+                    HStack {
+                        Text(suggestion.suggestion)
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        viewModel.select(suggestion: suggestion)
+                    }
                 }
             }
         }

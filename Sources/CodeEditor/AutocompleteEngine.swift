@@ -32,6 +32,10 @@ class AutocompleteEngine {
     var autocompleteBox: UIHostingController<AutocompleteSuggestionView>?
     var targetRange: UITextRange?
 
+    var autocompleteBoxActive: Bool {
+        return autocompleteBox != nil && !autocompleteViewModel.filteredList.isEmpty
+    }
+
     init(autocompleteViewModel: AutocompleteSuggestionViewModel = AutocompleteSuggestionViewModel()) {
         self.autocompleteViewModel = autocompleteViewModel
         self.autocompleteViewModel.delegate = self
@@ -42,7 +46,8 @@ class AutocompleteEngine {
     }
 
     func updateAutocompleteBuffer(for textView: UXTextView) {
-        let endLoc = textView.selectedRange.location + textView.selectedRange.length - 1
+        guard textView.selectedRange.length <= 1 else { return }
+        let endLoc = textView.selectedRange.location - 1
         var startLoc = endLoc
         var autocompTest = ""
         while charAt(startLoc, in: textView).isLetter || charAt(startLoc, in: textView).isNumber {
@@ -107,7 +112,39 @@ class AutocompleteEngine {
 extension AutocompleteEngine: AutocompleteSuggestionDelegate {
     func didSelectAutocompleteSuggestion(sugestion: AutocompleteSuggestion) {
         guard let selectionRange = targetRange else { return }
-        targetTextView?.replace(selectionRange, withText: sugestion.suggestion)
         removeSuggestionBox()
+        targetTextView?.replace(selectionRange, withText: sugestion.suggestion)
     }
+}
+
+extension AutocompleteEngine: UXCodeTextViewKeypressDelegate {
+    func textViewDidPressTab(textView: UXTextView) -> Bool {
+        guard autocompleteBoxActive else { return false }
+
+        autocompleteViewModel.selectCurrentSelection()
+        return true
+    }
+    
+    func textViewDidPressUpArrowKey(textView: UXTextView) -> Bool {
+        guard autocompleteBoxActive else { return false }
+
+        autocompleteViewModel.selectPrevSuggestion()
+        return true
+    }
+    
+    func textViewDidPressDownArrowKey(textView: UXTextView) -> Bool {
+        guard autocompleteBoxActive else { return false }
+
+        autocompleteViewModel.selectNextSuggestion()
+        return true
+    }
+    
+    func textViewDidPressEscape(textView: UXTextView) -> Bool {
+        guard autocompleteBoxActive else { return false }
+
+        removeSuggestionBox()
+        return true
+    }
+    
+
 }

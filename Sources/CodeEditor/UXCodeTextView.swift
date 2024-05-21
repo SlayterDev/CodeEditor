@@ -20,6 +20,13 @@ typealias UXTextView          = UITextView
 typealias UXTextViewDelegate  = UITextViewDelegate
 #endif
 
+protocol UXCodeTextViewKeypressDelegate: AnyObject {
+    func textViewDidPressTab(textView: UXTextView) -> Bool
+    func textViewDidPressUpArrowKey(textView: UXTextView) -> Bool
+    func textViewDidPressDownArrowKey(textView: UXTextView) -> Bool
+    func textViewDidPressEscape(textView: UXTextView) -> Bool
+}
+
 /**
  * Subclass of NSTextView/UITextView which adds some code editing features to
  * the respective Cocoa views.
@@ -60,6 +67,8 @@ final class UXCodeTextView: UXTextView {
             if let font = highlightr?.theme?.codeFont { self.font = font }
         }
     }
+
+    weak var keyPressDelegate: UXCodeTextViewKeypressDelegate?
 
     init() {
         let textStorage = highlightr.flatMap {
@@ -157,6 +166,30 @@ final class UXCodeTextView: UXTextView {
         let prev = self.selectedRange
         super.insertText(end)
         self.selectedRange = prev
+    }
+
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        guard let key = presses.first?.key else { super.pressesBegan(presses, with: event); return }
+        switch key.keyCode {
+        case .keyboardTab:
+            if !(keyPressDelegate?.textViewDidPressTab(textView: self) ?? false) {
+                super.pressesBegan(presses, with: event)
+            }
+        case .keyboardUpArrow:
+            if !(keyPressDelegate?.textViewDidPressUpArrowKey(textView: self) ?? false) {
+                super.pressesBegan(presses, with: event)
+            }
+        case .keyboardDownArrow:
+            if !(keyPressDelegate?.textViewDidPressDownArrowKey(textView: self) ?? false) {
+                super.pressesBegan(presses, with: event)
+            }
+        case .keyboardEscape:
+            if !(keyPressDelegate?.textViewDidPressEscape(textView: self) ?? false) {
+                super.pressesBegan(presses, with: event)
+            }
+        default:
+            super.pressesBegan(presses, with: event)
+        }
     }
 #endif
 #if os(macOS)

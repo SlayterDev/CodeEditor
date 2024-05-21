@@ -91,7 +91,7 @@ struct UXCodeTextViewRepresentable : UXViewRepresentable {
     public final class Coordinator: NSObject, UXCodeTextViewDelegate {
 
         var parent : UXCodeTextViewRepresentable
-        private let autocomplete: AutocompleteEngine
+        let autocomplete: AutocompleteEngine
 
         var fontSize : CGFloat? {
             set { if let value = newValue { parent.fontSize?.wrappedValue = value } }
@@ -271,6 +271,7 @@ struct UXCodeTextViewRepresentable : UXViewRepresentable {
         let textView = UXCodeTextView()
         textView.autoresizingMask   = [ .flexibleWidth, .flexibleHeight ]
         textView.delegate           = context.coordinator
+        textView.keyPressDelegate   = context.coordinator.autocomplete
         textView.textContainerInset = edgeInsets
 #if os(iOS)
         textView.autocapitalizationType = .none

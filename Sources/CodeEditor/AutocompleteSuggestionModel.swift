@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct AutocompleteSuggestion: Identifiable {
+struct AutocompleteSuggestion: Identifiable, Equatable {
     let suggestion: String
 
     var id: String {
@@ -24,7 +24,7 @@ struct AutocompleteSuggestionModel {
     }
 
     func suggestions(for string: String) -> [AutocompleteSuggestion] {
-        return suggestions.filter { $0.suggestion.starts(with: string) }
+        return suggestions.filter { $0.suggestion.starts(with: string) && $0.suggestion != string }
     }
 
 }
