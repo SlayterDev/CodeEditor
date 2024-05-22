@@ -13,7 +13,7 @@ protocol AutocompleteSuggestionDelegate: AnyObject {
 
 class AutocompleteSuggestionViewModel: ObservableObject {
 
-    let suggestionsModel: AutocompleteSuggestionModel
+    var suggestionsModel: AutocompleteSuggestionModel
 
     let pythonTokens: [String] = [
         "for",
@@ -27,7 +27,21 @@ class AutocompleteSuggestionViewModel: ObservableObject {
         "pass",
         "break",
         "continue",
-        "while"
+        "while",
+        "def",
+        "del",
+        "return",
+        "yield",
+        "global",
+        "nonlocal",
+        "import",
+        "from",
+        "class",
+        "try",
+        "raise",
+        "assert",
+        "with",
+        "not"
     ]
 
     weak var delegate: AutocompleteSuggestionDelegate?
@@ -42,6 +56,10 @@ class AutocompleteSuggestionViewModel: ObservableObject {
     func isSuggestionSelected(_ suggestion: AutocompleteSuggestion) -> Bool {
         guard !filteredList.isEmpty, selectionIndex < filteredList.count else { return false }
         return suggestion == filteredList[selectionIndex]
+    }
+
+    func setUserSuggestions(from set: Set<String>) {
+        suggestionsModel.setUserSuggestions(from: set)
     }
 
     func updateSuggestionList(for string: String) {

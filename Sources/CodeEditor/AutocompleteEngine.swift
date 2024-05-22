@@ -26,6 +26,7 @@ class AutocompleteEngine {
     weak var targetTextView: UXTextView?
     
     let autocompleteViewModel: AutocompleteSuggestionViewModel
+    let tokenizer: CodeTokenizer
 
     var boxLocation: CGPoint = .zero
 
@@ -36,8 +37,11 @@ class AutocompleteEngine {
         return autocompleteBox != nil && !autocompleteViewModel.filteredList.isEmpty
     }
 
-    init(autocompleteViewModel: AutocompleteSuggestionViewModel = AutocompleteSuggestionViewModel()) {
+    init(autocompleteViewModel: AutocompleteSuggestionViewModel = AutocompleteSuggestionViewModel(),
+         tokenizer: CodeTokenizer = CodeTokenizer()) {
         self.autocompleteViewModel = autocompleteViewModel
+        self.tokenizer = tokenizer
+
         self.autocompleteViewModel.delegate = self
     }
 
@@ -70,6 +74,8 @@ class AutocompleteEngine {
         } else {
             removeSuggestionBox()
         }
+
+        autocompleteViewModel.setUserSuggestions(from: tokenizer.getTokens(from: textView.string, exclude: autocompTest))
     }
 
     func setupView(in textView: UXTextView) {
