@@ -11,7 +11,7 @@ struct CodeTokenizer {
     func getTokens(from string: String, exclude currentToken: String?) -> Set<String> {
         let comps = string.components(separatedBy: CharacterSet(charactersIn: " \n\t(="))
 
-        var tokenSet = Set(comps).filter({
+        let tokenSet = Set(comps).filter({
             !$0.isEmpty &&                                               // not empty
             $0.rangeOfCharacter(from: .alphanumerics.inverted) == nil && // no symbols
             $0.rangeOfCharacter(from: .letters) != nil &&                // must contain a letter
